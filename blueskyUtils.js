@@ -2,6 +2,7 @@ import pkg from "@atproto/api";
 const { RichText, AtpAgent } = pkg;
 import fs from "fs/promises";
 import fsSync from "fs";
+import sharp from "sharp";
 
 export default {
   getLoggedInAgent: async (config, sessionFilePath) => {
@@ -104,13 +105,12 @@ export default {
     await agent.updateSeenNotifications();
     return mentions;
   },
-  createPostWithImage: async (agent, content, config, image) => {
+  createPostWithImage: async (agent, content, identifier, image) => {
     const richText = new RichText({
       text: content,
     });
 
     await richText.detectFacets();
-
     const imagePath = image ? image.url : null;
     const imageType = image ? image.type : null;
     const imageAltText = image ? image.alt : null;
@@ -141,7 +141,7 @@ export default {
 
     const splitUri = postResponse.uri.split("/");
     const postId = splitUri[splitUri.length - 1];
-    const postUrl = `https://bsky.app/profile/${config.identifier}/post/${postId}`;
+    const postUrl = `https://bsky.app/profile/${identifier}/post/${postId}`;
 
     return {
       postUrl: postUrl,
@@ -168,7 +168,6 @@ async function uploadImage(agent, imagePath, imageType) {
   let imageArrayBuffer;
   imageArrayBuffer = await downloadImage(imagePath);
   const resizedImageBuffer = await resizeImage(imageArrayBuffer, imageType, 800, 800);
-
   const imageBufferAsUIntArray = new Uint8Array(resizedImageBuffer);
   const uploadResponse = await agent.uploadBlob(imageBufferAsUIntArray, {
     encoding: imageType,
