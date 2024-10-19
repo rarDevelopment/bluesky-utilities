@@ -104,21 +104,12 @@ export default {
     await agent.updateSeenNotifications();
     return mentions;
   },
-  createPostWithImage: async (content, config, image) => {
-    const agent = new BskyAgent({
-      service: config.instance,
-    });
-
+  createPostWithImage: async (agent, content, config, image) => {
     const richText = new RichText({
       text: content,
     });
 
     await richText.detectFacets();
-
-    await agent.login({
-      identifier: config.identifier,
-      password: config.password,
-    });
 
     const imagePath = image ? image.url : null;
     const imageType = image ? image.type : null;
