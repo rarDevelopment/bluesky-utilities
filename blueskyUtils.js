@@ -13,7 +13,10 @@ export default {
       await fs.writeFile(sessionFilePath, JSON.stringify({}));
     }
     const fileContents = await fs.readFile(sessionFilePath);
-    const sessionData = JSON.parse(fileContents);
+    let sessionData = JSON.parse(fileContents);
+    if (config.identifier !== sessionData.handle) {
+      sessionData = null;
+    }
     let agent = new AtpAgent({
       service: config.instance,
       persistSession: (evt, sessionObj) => {
