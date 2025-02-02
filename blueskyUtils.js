@@ -108,30 +108,34 @@ export default {
     await agent.updateSeenNotifications();
     return mentions;
   },
-  createPostWithImage: async (agent, content, identifier, image) => {
+  createPostWithImages: async (agent, content, identifier, images) => {
     const richText = new RichText({
       text: content,
     });
 
     await richText.detectFacets();
-    const imagePath = image ? image.url : null;
-    const imageType = image ? image.type : null;
-    const imageAltText = image ? image.alt : null;
-    let imageBlob = null;
+
+    let uploadedImages = [];
+    for (let i = 0; i < images.length && uploadedImages.length < 4; i++) {
+      const image = images[i];
+      const imagePath = image ? image.url : null;
+      const imageType = image ? image.type : null;
+      const imageAltText = image ? image.alt : null;
+
+      if (imagePath && imageType) {
+        const imageBlob = await uploadImage(agent, imagePath, imageType);
+        uploadedImages.push({
+          image: imageBlob,
+          alt: imageAltText,
+        });
+      }
+    }
 
     let embedData = undefined;
-
-    if (imagePath && imageType) {
-      imageBlob = await uploadImage(agent, imagePath, imageType);
-
+    if (uploadedImages.length > 0) {
       embedData = {
         $type: "app.bsky.embed.images",
-        images: [
-          {
-            image: imageBlob,
-            alt: imageAltText,
-          },
-        ],
+        images: uploadedImages,
       };
     }
 
