@@ -36,3 +36,8 @@ const postWithImages = await blueskyUtils.createPostWithImages(
     },
   ]
 );
+const postWithoutImages = await blueskyUtils.createPostWithImages(
+  agent,
+  "just running a test without images!",
+  config.identifier
+);

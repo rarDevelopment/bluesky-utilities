@@ -115,8 +115,10 @@ export default {
 
     await richText.detectFacets();
 
+    const imageCount = images?.length || 0;
     let uploadedImages = [];
-    for (let i = 0; i < images.length && uploadedImages.length < 4; i++) {
+
+    for (let i = 0; i < imageCount && uploadedImages.length < 4; i++) {
       const image = images[i];
       const imagePath = image ? image.url : null;
       const imageType = image ? image.type : null;
