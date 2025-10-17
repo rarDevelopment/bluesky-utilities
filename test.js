@@ -25,9 +25,9 @@ const postWithImages = await blueskyUtils.createPostWithImages(
       alt: "hello world 3",
     },
     {
-      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      url: "https://rardk64.com/get-image/?i=1760366849__68ed11016e010.png",
       type: "image/png",
-      alt: "hello world 4",
+      alt: "hello world 4 should compress",
     },
     {
       url: "https://rardk64.com/get-image/?i=1728848636__image.png",

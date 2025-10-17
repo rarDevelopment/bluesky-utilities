@@ -165,9 +165,28 @@ async function resizeImage(imageArrayBuffer, imageType, maxWidth, maxHeight) {
   });
 
   if (imageType.includes("png")) {
-    resizedImage = resizedImage.png({ quality: 60 });
+    resizedImage = resizedImage.png({ quality: 80 });
   } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
-    resizedImage = resizedImage.jpeg({ quality: 60 });
+    resizedImage = resizedImage.jpeg({ quality: 80 });
+  }
+
+  const metadata = await resizedImage.metadata();
+  if (metadata && metadata.size) {
+    const kbSize = metadata.size / 1024;
+    console.log(`Image size after initial resize: ${kbSize} KB`);
+    if (kbSize > 950) {
+      console.log("Image is larger than 950 KB, compressing further");
+      if (imageType.includes("png")) {
+        resizedImage = resizedImage.png({ quality: 60 });
+      } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
+        resizedImage = resizedImage.jpeg({ quality: 60 });
+      }
+      const newMetadata = await resizedImage.metadata();
+      if (newMetadata && newMetadata.size) {
+        const newKbSize = newMetadata.size / 1024;
+        console.log(`Image compressed to ${newKbSize} KB, going ahead with that.`);
+      }
+    }
   }
 
   return await resizedImage.toBuffer();
