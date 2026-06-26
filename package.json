@@ -3,6 +3,9 @@
   "version": "1.4.0",
   "description": "A small utility package for Bluesky functions.",
   "main": "blueskyUtils.js",
+  "files": [
+    "blueskyUtils.js"
+  ],
   "scripts": {
     "test": "node test.js"
   },
