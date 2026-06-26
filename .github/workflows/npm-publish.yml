@@ -26,8 +26,4 @@ jobs:
           registry-url: "https://registry.npmjs.org/"
           package-manager-cache: false
       - run: npm ci
-      - name: OIDC check
-        run: |
-          echo "npm: $(npm --version)"
-          echo "OIDC available: ${ACTIONS_ID_TOKEN_REQUEST_URL:+YES}${ACTIONS_ID_TOKEN_REQUEST_URL:-NO}"
       - run: npm publish
