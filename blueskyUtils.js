@@ -1,5 +1,4 @@
-import pkg from "@atproto/api";
-const { RichText, AtpAgent } = pkg;
+import { RichText, AtpAgent } from "@atproto/api";
 import fs from "fs/promises";
 import fsSync from "fs";
 import sharp from "sharp";
@@ -118,23 +117,33 @@ export default {
     const imageCount = images?.length || 0;
     let uploadedImages = [];
 
-    for (let i = 0; i < imageCount && uploadedImages.length < 4; i++) {
+    // images embed caps at 4; gallery embed allows more (soft limit 10)
+    for (let i = 0; i < imageCount && uploadedImages.length < 10; i++) {
       const image = images[i];
       const imagePath = image ? image.url : null;
       const imageType = image ? image.type : null;
       const imageAltText = image ? image.alt : null;
 
       if (imagePath && imageType) {
-        const imageBlob = await uploadImage(agent, imagePath, imageType);
+        const { blob, aspectRatio } = await uploadImage(agent, imagePath, imageType);
         uploadedImages.push({
-          image: imageBlob,
-          alt: imageAltText,
+          image: blob,
+          alt: imageAltText ?? "",
+          aspectRatio,
         });
       }
     }
 
     let embedData = undefined;
-    if (uploadedImages.length > 0) {
+    if (uploadedImages.length > 4) {
+      embedData = {
+        $type: "app.bsky.embed.gallery",
+        items: uploadedImages.map((img) => ({
+          $type: "app.bsky.embed.gallery#image",
+          ...img,
+        })),
+      };
+    } else if (uploadedImages.length > 0) {
       embedData = {
         $type: "app.bsky.embed.images",
         images: uploadedImages,
@@ -159,48 +168,45 @@ export default {
   },
 };
 async function resizeImage(imageArrayBuffer, imageType, maxWidth, maxHeight) {
-  let resizedImage = sharp(imageArrayBuffer).rotate().resize(maxWidth, maxHeight, {
+  const pipeline = sharp(imageArrayBuffer).rotate().resize(maxWidth, maxHeight, {
     fit: sharp.fit.inside,
     withoutEnlargement: true,
   });
 
-  if (imageType.includes("png")) {
-    resizedImage = resizedImage.png({ quality: 80 });
-  } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
-    resizedImage = resizedImage.jpeg({ quality: 80 });
-  }
-
-  const metadata = await resizedImage.metadata();
-  if (metadata && metadata.size) {
-    const kbSize = metadata.size / 1024;
-    console.log(`Image size after initial resize: ${kbSize} KB`);
-    if (kbSize > 950) {
-      console.log("Image is larger than 950 KB, compressing further");
-      if (imageType.includes("png")) {
-        resizedImage = resizedImage.png({ quality: 60 });
-      } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
-        resizedImage = resizedImage.jpeg({ quality: 60 });
-      }
-      const newMetadata = await resizedImage.metadata();
-      if (newMetadata && newMetadata.size) {
-        const newKbSize = newMetadata.size / 1024;
-        console.log(`Image compressed to ${newKbSize} KB, going ahead with that.`);
-      }
+  const encode = (quality) => {
+    if (imageType.includes("png")) {
+      return pipeline.png({ quality });
+    } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
+      return pipeline.jpeg({ quality });
     }
+    return pipeline;
+  };
+
+  let { data, info } = await encode(90).toBuffer({ resolveWithObject: true });
+  let kbSize = info.size / 1024;
+  console.log(`Image size after initial resize: ${kbSize} KB`);
+
+  if (kbSize > 1900) {
+    console.log("Image is larger than 1900 KB, compressing further");
+    ({ data, info } = await encode(70).toBuffer({ resolveWithObject: true }));
+    kbSize = info.size / 1024;
+    console.log(`Image compressed to ${kbSize} KB, going ahead with that.`);
   }
 
-  return await resizedImage.toBuffer();
+  return { data, width: info.width, height: info.height };
 }
 
 async function uploadImage(agent, imagePath, imageType) {
-  let imageArrayBuffer;
-  imageArrayBuffer = await downloadImage(imagePath);
-  const resizedImageBuffer = await resizeImage(imageArrayBuffer, imageType, 800, 800);
-  const imageBufferAsUIntArray = new Uint8Array(resizedImageBuffer);
+  const imageArrayBuffer = await downloadImage(imagePath);
+  const { data, width, height } = await resizeImage(imageArrayBuffer, imageType, 800, 800);
+  const imageBufferAsUIntArray = new Uint8Array(data);
   const uploadResponse = await agent.uploadBlob(imageBufferAsUIntArray, {
     encoding: imageType,
   });
-  return uploadResponse.data.blob;
+  return {
+    blob: uploadResponse.data.blob,
+    aspectRatio: { width, height },
+  };
 }
 
 async function downloadImage(url) {

@@ -12,6 +12,38 @@ const postWithImages = await blueskyUtils.createPostWithImages(
     {
       url: "https://rardk64.com/get-image/?i=1728848636__image.png",
       type: "image/png",
+      alt: "hello world 1",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 2",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 3",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 4",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 5 should not post",
+    },
+  ]
+);
+const postWithGallery = await blueskyUtils.createPostWithImages(
+  agent,
+  "just running a test with an image gallery!",
+  config.identifier,
+  [
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
       alt: "hello world",
     },
     {
@@ -32,7 +64,37 @@ const postWithImages = await blueskyUtils.createPostWithImages(
     {
       url: "https://rardk64.com/get-image/?i=1728848636__image.png",
       type: "image/png",
-      alt: "hello world 5 should not post",
+      alt: "hello world 5",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 6",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 7",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 8",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 9",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 10",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 11 should not post",
     },
   ]
 );
