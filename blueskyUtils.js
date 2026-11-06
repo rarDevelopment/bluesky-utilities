@@ -167,41 +167,90 @@ export default {
     };
   },
 };
-async function resizeImage(imageArrayBuffer, imageType, maxWidth, maxHeight) {
-  const pipeline = sharp(imageArrayBuffer).rotate().resize(maxWidth, maxHeight, {
-    fit: sharp.fit.inside,
-    withoutEnlargement: true,
-  });
+// bluesky's limit is 2MB per image and it shows them at 2000px max
+const MAX_IMAGE_BYTES = 1_950_000;
+const MAX_IMAGE_DIMENSION = 2000;
+// lower quality first, only shrink if that's not enough
+const FALLBACK_DIMENSIONS = [MAX_IMAGE_DIMENSION, 1600, 1200];
+const JPEG_QUALITIES = [90, 85, 80, 75];
 
-  const encode = (quality) => {
-    if (imageType.includes("png")) {
-      return pipeline.png({ quality });
-    } else if (imageType.includes("jpeg") || imageType.includes("jpg")) {
-      return pipeline.jpeg({ quality });
-    }
-    return pipeline;
-  };
+// leaves the image alone if it already fits, since re-compressing makes it worse
+async function prepareImage(imageArrayBuffer, imageType) {
+  const buffer = Buffer.from(imageArrayBuffer);
+  const metadata = await sharp(buffer).metadata();
 
-  let { data, info } = await encode(90).toBuffer({ resolveWithObject: true });
-  let kbSize = info.size / 1024;
-  console.log(`Image size after initial resize: ${kbSize} KB`);
+  // sideways photos (exif 5-8) have width and height flipped
+  const orientation = metadata.orientation ?? 1;
+  const width = orientation >= 5 ? metadata.height : metadata.width;
+  const height = orientation >= 5 ? metadata.width : metadata.height;
+  const format = metadata.format; // from the file itself, not imageType
 
-  if (kbSize > 1900) {
-    console.log("Image is larger than 1900 KB, compressing further");
-    ({ data, info } = await encode(70).toBuffer({ resolveWithObject: true }));
-    kbSize = info.size / 1024;
-    console.log(`Image compressed to ${kbSize} KB, going ahead with that.`);
+  // step 1: already fits, send as is
+  const passthroughMimeType = { jpeg: "image/jpeg", png: "image/png" }[format];
+  if (
+    passthroughMimeType &&
+    orientation === 1 &&
+    buffer.byteLength <= MAX_IMAGE_BYTES &&
+    Math.max(width, height) <= MAX_IMAGE_DIMENSION
+  ) {
+    console.log(`Image is ${kb(buffer.byteLength)} KB at ${width}x${height}, uploading original.`);
+    return { data: buffer, width, height, mimeType: passthroughMimeType };
   }
 
-  return { data, width: info.width, height: info.height };
+  // pngs are usually screenshots, keep full colour detail so text stays sharp
+  const isGraphic = format === "png" || (imageType ?? "").includes("png");
+  const resized = (dimension) =>
+    sharp(buffer).rotate().resize(dimension, dimension, {
+      fit: sharp.fit.inside,
+      withoutEnlargement: true,
+    });
+
+  let smallest = null;
+  const consider = (result, mimeType, label) => {
+    const { data, info } = result;
+    console.log(`Image ${label}: ${kb(info.size)} KB at ${info.width}x${info.height}`);
+    const candidate = { data, width: info.width, height: info.height, mimeType };
+    if (!smallest || info.size < smallest.data.byteLength) {
+      smallest = candidate;
+    }
+    return info.size <= MAX_IMAGE_BYTES ? candidate : null;
+  };
+
+  // step 2: lossless png. no `quality` here, sharp drops it to 256 colours if you do
+  if (isGraphic) {
+    const png = await resized(MAX_IMAGE_DIMENSION)
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer({ resolveWithObject: true });
+    const fit = consider(png, "image/png", "as lossless PNG");
+    if (fit) return fit;
+  }
+
+  // step 3: jpeg until it fits (transparency becomes white)
+  for (const dimension of FALLBACK_DIMENSIONS) {
+    for (const quality of JPEG_QUALITIES) {
+      const jpeg = await resized(dimension)
+        .flatten({ background: "#ffffff" })
+        .jpeg({ quality, mozjpeg: true, chromaSubsampling: isGraphic ? "4:4:4" : "4:2:0" })
+        .toBuffer({ resolveWithObject: true });
+      const fit = consider(jpeg, "image/jpeg", `as JPEG q${quality} (max ${dimension}px)`);
+      if (fit) return fit;
+    }
+  }
+
+  console.warn(`Could not get image under ${kb(MAX_IMAGE_BYTES)} KB; uploading smallest attempt.`);
+  return smallest;
+}
+
+function kb(bytes) {
+  return Math.round(bytes / 1024);
 }
 
 async function uploadImage(agent, imagePath, imageType) {
   const imageArrayBuffer = await downloadImage(imagePath);
-  const { data, width, height } = await resizeImage(imageArrayBuffer, imageType, 800, 800);
+  const { data, width, height, mimeType } = await prepareImage(imageArrayBuffer, imageType);
   const imageBufferAsUIntArray = new Uint8Array(data);
   const uploadResponse = await agent.uploadBlob(imageBufferAsUIntArray, {
-    encoding: imageType,
+    encoding: mimeType,
   });
   return {
     blob: uploadResponse.data.blob,
