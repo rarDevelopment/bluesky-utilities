@@ -34,7 +34,7 @@ const postWithImages = await blueskyUtils.createPostWithImages(
       type: "image/png",
       alt: "hello world 5 should not post",
     },
-  ]
+  ],
 );
 const postWithGallery = await blueskyUtils.createPostWithImages(
   agent,
@@ -96,10 +96,42 @@ const postWithGallery = await blueskyUtils.createPostWithImages(
       type: "image/png",
       alt: "hello world 11 should not post",
     },
-  ]
+  ],
 );
 const postWithoutImages = await blueskyUtils.createPostWithImages(
   agent,
   "just running a test without images!",
-  config.identifier
+  config.identifier,
+);
+const postWithBigImages = await blueskyUtils.createPostWithImages(
+  agent,
+  "just running a test with some big images and a small image!",
+  config.identifier,
+  [
+    {
+      url: "https://rardk64.com/get-image/?i=2026-10-30_23.40.38.png",
+      type: "image/png",
+      alt: "hello world 1 big image",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=IMG_4171.jpeg",
+      type: "image/png",
+      alt: "hello world 2 big image",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=IMG_4170.jpeg",
+      type: "image/png",
+      alt: "hello world 3 big image",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=IMG_4176.JPG",
+      type: "image/png",
+      alt: "hello world 4 big image",
+    },
+    {
+      url: "https://rardk64.com/get-image/?i=1728848636__image.png",
+      type: "image/png",
+      alt: "hello world 2 small image",
+    },
+  ],
 );
