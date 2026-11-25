@@ -1,6 +1,6 @@
 {
   "name": "bluesky-utilities",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A small utility package for Bluesky functions.",
   "main": "blueskyUtils.js",
   "files": [
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/rarDevelopment/bluesky-utilities#readme",
   "dependencies": {
-    "@atproto/api": "^0.20.22",
-    "sharp": "^0.35.2"
+    "@atproto/api": "^0.32.7",
+    "sharp": "^0.35.5"
   }
 }
